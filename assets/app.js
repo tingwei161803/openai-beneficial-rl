@@ -351,15 +351,15 @@
       flashcards: function (p) {
         var hint = L.state.lang === "en" ? "Tap to flip" : "點擊翻面";
         var cards = (p.cards || []).map(function (c, i) {
-          return '<button class="flashcard" type="button" data-item aria-label="' + esc(t(c.front)) + '">' +
-            '<span class="flashcard__inner">' +
-              '<span class="flashcard__face flashcard__front">' +
+          return '<div class="flashcard" role="button" tabindex="0" data-item aria-label="' + esc(t(c.front)) + '">' +
+            '<div class="flashcard__inner">' +
+              '<div class="flashcard__face flashcard__front">' +
                 '<span class="flashcard__num">' + (i + 1) + "</span>" +
                 '<span class="flashcard__term">' + esc(t(c.front)) + "</span>" +
-                '<span class="flashcard__hint">' + esc(hint) + "</span></span>" +
-              '<span class="flashcard__face flashcard__back">' +
-                '<span class="flashcard__def">' + esc(t(c.back)) + "</span></span>" +
-            "</span></button>";
+                '<span class="flashcard__hint">' + esc(hint) + "</span></div>" +
+              '<div class="flashcard__face flashcard__back">' +
+                '<span class="flashcard__def">' + esc(t(c.back)) + "</span></div>" +
+            "</div></div>";
         }).join("");
         return head(p) + '<div class="flashcards">' + cards + "</div>";
       },
@@ -698,10 +698,14 @@
         });
       },
 
-      /* ---- flashcards: click / Enter / Space flips a card ---- */
+      /* ---- flashcards: click / Enter / Space flips a card (div role=button) ---- */
       flashcards: function () {
         [].forEach.call(pageEl.querySelectorAll(".flashcard"), function (card) {
-          card.addEventListener("click", function () { card.classList.toggle("is-flipped"); });
+          function flip() { card.classList.toggle("is-flipped"); }
+          card.addEventListener("click", flip);
+          card.addEventListener("keydown", function (e) {
+            if (e.key === "Enter" || e.key === " " || e.key === "Spacebar") { e.preventDefault(); flip(); }
+          });
         });
       },
 
@@ -758,6 +762,77 @@
     }
 
     /* =====================================================================
+       GSAP MOTION LAYER (progressive enhancement)
+
+       Runs after each render. It is fully optional: if GSAP failed to load or
+       the visitor prefers reduced motion, nothing here runs and the content is
+       already visible (CSS owns a quiet fallback fade). Above-the-fold items
+       always animate in immediately (gsap.from), so content is NEVER left
+       stuck hidden; only below-the-fold items wait for a scroll reveal. Every
+       ScrollTrigger / tween is pushed into `teardowns` so a language switch
+       (which rebuilds #page) cleans up before the next render.
+       ===================================================================== */
+    var REDUCED = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+    var stRegistered = false;
+
+    function setupMotion() {
+      var gsap = window.gsap, ST = window.ScrollTrigger;
+      if (!gsap || REDUCED) return;                       // CSS fallback handles visibility
+      if (ST && !stRegistered) { gsap.registerPlugin(ST); stRegistered = true; }
+      document.documentElement.classList.add("has-gsap"); // let GSAP own the reveal (CSS fade off)
+
+      var made = [];                                       // tweens + ScrollTriggers to kill later
+      function keep(x) { if (x) made.push(x); return x; }
+
+      // 1) page-head entrance — always above the fold
+      var heads = pageEl.querySelectorAll(".page-head > *");
+      if (heads.length) keep(gsap.from(heads, { y: 18, opacity: 0, duration: .7, ease: "power3.out", stagger: .08 }));
+
+      // 2) primary content reveal. Split by viewport so nothing stays hidden:
+      //    in-view items animate now; below-fold items reveal on scroll.
+      //    Skip <tr> — transforms render inconsistently on table rows.
+      var items = [].slice.call(pageEl.querySelectorAll("[data-item]:not(tr)"));
+      if (items.length) {
+        var vh = window.innerHeight || 800, above = [], below = [];
+        items.forEach(function (el) {
+          (el.getBoundingClientRect().top < vh * 0.9 ? above : below).push(el);
+        });
+        if (above.length) keep(gsap.from(above, { y: 20, opacity: 0, duration: .6, ease: "power3.out", stagger: .05 }));
+        if (below.length) {
+          if (ST && ST.batch) {
+            gsap.set(below, { y: 24, opacity: 0 });
+            ST.batch(below, {
+              start: "top 90%",
+              onEnter: function (els) {
+                gsap.to(els, { y: 0, opacity: 1, duration: .6, ease: "power3.out", stagger: .06, overwrite: true });
+              }
+            }).forEach(keep);
+          } else {
+            gsap.set(below, { opacity: 1, y: 0 });          // no ScrollTrigger: just show them
+          }
+        }
+      }
+
+      // 3) chart bars grow from their own base when the panel scrolls in
+      var bars = pageEl.querySelectorAll(".bar-rect");
+      if (ST && bars.length) {
+        gsap.set(bars, { scaleY: 0 });
+        var host = bars[0].closest(".panel, .scrolly-visual") || pageEl;
+        keep(ST.create({
+          trigger: host, start: "top 82%", once: true,
+          onEnter: function () { gsap.to(bars, { scaleY: 1, duration: .9, ease: "power2.out", stagger: .05 }); }
+        }));
+      }
+
+      if (ST) ST.refresh();
+
+      teardowns.push(function () {
+        made.forEach(function (x) { try { x.kill && x.kill(); } catch (e) {} });
+        try { gsap.killTweensOf(pageEl.querySelectorAll("*")); } catch (e) {}
+      });
+    }
+
+    /* =====================================================================
        RENDER the current page; re-runnable on language switch
        ===================================================================== */
     function render() {
@@ -770,6 +845,7 @@
       pageEl.innerHTML = fn(p);
       var w = WIRE[p.layout];
       if (w) w(p);
+      setupMotion();
     }
 
     L.onLang(render);
