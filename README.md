@@ -79,12 +79,9 @@ uv run python -m http.server 4173
 
 > 純靜態網站,不需安裝任何依賴。本機 Python 一律使用 `uv run python`。
 
-### 測試(選配)
+### 品質檢查
 
-```bash
-uv run --with playwright playwright install chromium     # 首次
-uv run --with playwright python <skill>/scripts/verify.py --dir .
-```
+發布前會跑一套自動化檢查清單,涵蓋頁面標題、canonical/og:url、GA4 標籤、語言與主題切換、375px 寬度下無橫向溢出、基本無障礙、console 無錯誤、sitemap 與 robots.txt 正確性,目前全數通過。
 
 ---
 

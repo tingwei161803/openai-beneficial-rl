@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://openai-beneficial-rl.peteraim.com/sitemap.xml

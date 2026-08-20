@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  本站自己的 sitemap。刻意不寫 <lastmod>:沒有可信的「內容最後修改時間」
+  來源(git commit 時間不等於內容變動時間),給錯的 lastmod 比不給更糟。
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://openai-beneficial-rl.peteraim.com/domains.html</loc>
+  </url>
+  <url>
+    <loc>https://openai-beneficial-rl.peteraim.com/examples.html</loc>
+  </url>
+  <url>
+    <loc>https://openai-beneficial-rl.peteraim.com/explanations.html</loc>
+  </url>
+  <url>
+    <loc>https://openai-beneficial-rl.peteraim.com/flashcards.html</loc>
+  </url>
+  <url>
+    <loc>https://openai-beneficial-rl.peteraim.com/glossary.html</loc>
+  </url>
+  <url>
+    <loc>https://openai-beneficial-rl.peteraim.com/</loc>
+  </url>
+  <url>
+    <loc>https://openai-beneficial-rl.peteraim.com/method.html</loc>
+  </url>
+  <url>
+    <loc>https://openai-beneficial-rl.peteraim.com/persistence.html</loc>
+  </url>
+  <url>
+    <loc>https://openai-beneficial-rl.peteraim.com/quiz.html</loc>
+  </url>
+  <url>
+    <loc>https://openai-beneficial-rl.peteraim.com/references.html</loc>
+  </url>
+  <url>
+    <loc>https://openai-beneficial-rl.peteraim.com/results.html</loc>
+  </url>
+  <url>
+    <loc>https://openai-beneficial-rl.peteraim.com/traits.html</loc>
+  </url>
+</urlset>
