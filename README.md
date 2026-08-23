@@ -2,7 +2,7 @@
 
 > 把 OpenAI Alignment 論文《Reinforcement Learning Towards Broadly and Persistently Beneficial Models》整理成一個可瀏覽、可互動、雙語的研究導覽網站。
 
-這是一個**非官方**的論文導覽站,把這篇研究的核心主張、15 個有益特質、12 個情境領域、方法、結果與「對齊持久性」拆成多個頁面呈現,並附上術語速查、特質字卡與隨堂測驗。內容整理自論文與 OpenAI Alignment 部落格頁;所有可見文字皆中英雙語、可一鍵全頁切換。
+這是一個**非官方**的論文導覽站,把這篇研究的核心主張、15 個有益特質、12 個情境領域、方法、結果與「對齊持久性」拆成多個頁面呈現,並附上術語速查、特質字卡與隨堂測驗。內容整理自論文與 OpenAI Alignment 部落格頁;所有可見文字皆中英雙語,中文版在根目錄、英文版在 `/en/`,兩種語言各有自己的網址。
 
 ---
 
@@ -13,15 +13,15 @@
 | 🌐 網站 | <https://openai-beneficial-rl.peteraim.com/> |
 | 📄 原始論文 | <https://alignment.openai.com/beneficial-rl> |
 
-> 直接點進去就能用,無需安裝。每個內容頁都有獨立網址(例如 `…/traits.html`、`…/results.html`),方便分享與 SEO;`traits.html` 的特質卡片支援 `#<slug>` 深連結。
+> 直接點進去就能用,無需安裝。每個內容頁的**每一種語言**都有獨立網址(中文 `…/traits.html`、英文 `…/en/traits.html`),方便分享與 SEO;`traits.html` 的特質卡片支援 `#<slug>` 深連結。
 
 ---
 
 ## ✨ 功能特色
 
-- 🌏 **中英雙語全頁切換** — 一鍵把整站(卡片、圖表、導覽、靜態文案、`<title>`)在中文 / English 間切換,不留殘字。
+- 🌏 **一種語言一個網址** — 中文在根目錄、英文在 `/en/`,每一頁(卡片、圖表、導覽、`<title>`、描述)都完整存在於兩種語言。切換鈕是真的連結,直接跳到同一頁的另一語言版本;兩邊互相標註 `hreflang`。
 - 🌗 **深色 / 淺色模式** — 手動切換,選擇會記住。
-- 🧭 **多頁面 + 跨頁導覽** — 12 個頁面共用同一套外框,語言/主題跨頁持久。
+- 🧭 **多頁面 + 跨頁導覽** — 12 個頁面共用同一套外框,主題跨頁持久,語言則由網址決定。
 - 🃏 **15 個有益特質圖鑑** — 可搜尋、可依「held-out 評測子集 / 僅訓練用」篩選,點卡片看完整定義。
 - 🔀 **基線 vs 有益特質模型對照** — 同一個使用者提示,並列兩個模型的回應(獎勵駭入、醫療安全、誠實陳述…)。
 - 📊 **結果儀表板** — 關鍵統計卡 + 純 SVG 長條圖 + 評測差距表(零圖表函式庫)。
@@ -51,9 +51,10 @@ openai-beneficial-rl/
 ├── flashcards.html       # 特質字卡
 ├── quiz.html             # 隨堂測驗
 ├── references.html       # 精選參考文獻(表格)
+├── en/                   # 以上 12 頁的英文版(同樣的檔名,同樣的版型)
 ├── data/data.js          # 單一資料層(SITE_META + SITE_PAGES,雙語)
 ├── assets/
-│   ├── shell.js          # 共用外框:appbar / 跨頁導覽 / footer / dialog / 語言+主題
+│   ├── shell.js          # 共用外框:appbar / 跨頁導覽 / footer / dialog / 主題;語言取自 <html lang>
 │   ├── app.js            # 版型引擎:依頁面 layout 渲染
 │   └── styles.css        # 樣式(極簡編輯風 + 各版型)
 ├── favicon.svg
