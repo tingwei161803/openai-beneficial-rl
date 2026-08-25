@@ -5,7 +5,46 @@
 -->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
+    <loc>https://openai-beneficial-rl.peteraim.com/</loc>
+  </url>
+  <url>
     <loc>https://openai-beneficial-rl.peteraim.com/domains.html</loc>
+  </url>
+  <url>
+    <loc>https://openai-beneficial-rl.peteraim.com/en/</loc>
+  </url>
+  <url>
+    <loc>https://openai-beneficial-rl.peteraim.com/en/domains.html</loc>
+  </url>
+  <url>
+    <loc>https://openai-beneficial-rl.peteraim.com/en/examples.html</loc>
+  </url>
+  <url>
+    <loc>https://openai-beneficial-rl.peteraim.com/en/explanations.html</loc>
+  </url>
+  <url>
+    <loc>https://openai-beneficial-rl.peteraim.com/en/flashcards.html</loc>
+  </url>
+  <url>
+    <loc>https://openai-beneficial-rl.peteraim.com/en/glossary.html</loc>
+  </url>
+  <url>
+    <loc>https://openai-beneficial-rl.peteraim.com/en/method.html</loc>
+  </url>
+  <url>
+    <loc>https://openai-beneficial-rl.peteraim.com/en/persistence.html</loc>
+  </url>
+  <url>
+    <loc>https://openai-beneficial-rl.peteraim.com/en/quiz.html</loc>
+  </url>
+  <url>
+    <loc>https://openai-beneficial-rl.peteraim.com/en/references.html</loc>
+  </url>
+  <url>
+    <loc>https://openai-beneficial-rl.peteraim.com/en/results.html</loc>
+  </url>
+  <url>
+    <loc>https://openai-beneficial-rl.peteraim.com/en/traits.html</loc>
   </url>
   <url>
     <loc>https://openai-beneficial-rl.peteraim.com/examples.html</loc>
@@ -18,9 +57,6 @@
   </url>
   <url>
     <loc>https://openai-beneficial-rl.peteraim.com/glossary.html</loc>
-  </url>
-  <url>
-    <loc>https://openai-beneficial-rl.peteraim.com/</loc>
   </url>
   <url>
     <loc>https://openai-beneficial-rl.peteraim.com/method.html</loc>
