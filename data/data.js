@@ -24,6 +24,8 @@ window.SITE_PAGES = [
   /* ===================================================================== */
   {
     slug: "home", layout: "hub", icon: "neurology",
+    group: null,
+    short: { en: "Guide home", zh: "導讀首頁" },
     title: { en: "Reinforcement Learning Towards Broadly and Persistently Beneficial Models",
              zh: "邁向廣泛且持久有益的模型：強化學習研究" },
     subtitle: {
@@ -44,6 +46,8 @@ window.SITE_PAGES = [
   /* ===================================================================== */
   {
     slug: "traits", layout: "gallery", icon: "psychology",
+    group: "paper",
+    short: { en: "Traits", zh: "特質" },
     title: { en: "The 15 beneficial traits", zh: "15 個有益特質" },
     subtitle: {
       en: "Behavioral tendencies that seem broadly useful for aligned AI — derived from recurring concerns in the alignment literature. Direct trait evaluation focuses on a held-out subset of seven. Search or filter; tap a card for the full definition.",
@@ -137,6 +141,8 @@ window.SITE_PAGES = [
   /* ===================================================================== */
   {
     slug: "domains", layout: "bento", icon: "category",
+    group: "paper",
+    short: { en: "Domains", zh: "領域" },
     title: { en: "12 domains of realistic scenarios", zh: "12 個真實情境領域" },
     subtitle: {
       en: "Each beneficial trait is instantiated across many domains, so it shows up under different surface content, incentives, and failure modes. Health and science are highlighted — they anchor the paper's clearest out-of-distribution transfer tests.",
@@ -199,6 +205,8 @@ window.SITE_PAGES = [
   /* ===================================================================== */
   {
     slug: "method", layout: "article", icon: "biotech",
+    group: "paper",
+    short: { en: "Method", zh: "方法" },
     title: { en: "How the study works", zh: "研究方法" },
     subtitle: { en: "From a shared signal across alignment evals, to a beneficial-trait dataset, to a small RL intervention measured against a compute-matched baseline.",
                 zh: "從對齊評測間的共同訊號，到有益特質資料集，再到對照「相同算力基線」的一個小型 RL 介入。" },
@@ -248,6 +256,8 @@ window.SITE_PAGES = [
   /* ===================================================================== */
   {
     slug: "examples", layout: "examples", icon: "compare_arrows",
+    group: "paper",
+    short: { en: "Examples", zh: "範例" },
     title: { en: "Baseline vs. beneficial-trait model", zh: "基線 vs. 有益特質模型" },
     subtitle: {
       en: "Qualitative examples from the alignment and benefits evaluations. Each pairs the same user prompt with the compute-matched baseline and the beneficial-trait model. Conversations are shortened for space.",
@@ -316,6 +326,8 @@ window.SITE_PAGES = [
   /* ===================================================================== */
   {
     slug: "results", layout: "dashboard", icon: "insights",
+    group: "paper",
+    short: { en: "Results", zh: "結果" },
     title: { en: "Broad alignment generalization", zh: "廣泛的對齊泛化" },
     subtitle: { en: "Against a compute-matched baseline, beneficial-trait RL improves on a large, independently built evaluation suite — and matches or exceeds the baseline on capability tests. Higher is better throughout.",
                 zh: "對照「相同算力基線」，有益特質 RL 在一個龐大、獨立建構的評測套件上普遍提升——同時在能力測試上持平或超越基線。全部以「越高越好」呈現。" },
@@ -365,6 +377,8 @@ window.SITE_PAGES = [
   /* ===================================================================== */
   {
     slug: "persistence", layout: "scrolly", icon: "shield",
+    group: "paper",
+    short: { en: "Persistence", zh: "持久性" },
     title: { en: "Alignment persistence", zh: "對齊持久性" },
     subtitle: { en: "Persistence is the robustness of aligned behavior to adversarial pressure — prompt steering and harmful finetuning. The goal is selective: harder to steer toward harm, still responsive to legitimate, beneficial instructions.",
                 zh: "持久性，指對齊行為對抗壓力（提示誘導與有害微調）的穩健度。目標是「選擇性」的：更難被推向有害，卻仍對正當、有益的指示有反應。" },
@@ -398,6 +412,8 @@ window.SITE_PAGES = [
   /* ===================================================================== */
   {
     slug: "explanations", layout: "faq", icon: "rule",
+    group: "paper",
+    short: { en: "Alternatives", zh: "替代解釋" },
     title: { en: "Alternative explanations, ruled out", zh: "替代解釋，逐一排除" },
     subtitle: { en: "The paper stress-tests whether the gains are real generalization, or some cheaper artifact. Search the questions.",
                 zh: "論文逐一檢驗：這些進步是真正的泛化，還是某種更廉價的假象？可搜尋下列問題。" },
@@ -431,6 +447,8 @@ window.SITE_PAGES = [
   /* ===================================================================== */
   {
     slug: "glossary", layout: "glossary", icon: "menu_book",
+    group: "kit",
+    short: { en: "Glossary", zh: "術語" },
     title: { en: "Glossary", zh: "術語速查" },
     subtitle: { en: "Key alignment terms used across this study. Search to filter.", zh: "本研究中用到的關鍵對齊術語。可搜尋過濾。" },
     terms: [
@@ -496,6 +514,8 @@ window.SITE_PAGES = [
   /* ===================================================================== */
   {
     slug: "flashcards", layout: "flashcards", icon: "style",
+    group: "kit",
+    short: { en: "Flashcards", zh: "字卡" },
     title: { en: "Trait flashcards", zh: "特質字卡" },
     subtitle: { en: "Tap a card to flip between the trait and its definition. A quick way to learn all fifteen.",
                 zh: "點卡片在「特質」與「定義」間翻面。快速記住全部 15 個。" },
@@ -523,6 +543,8 @@ window.SITE_PAGES = [
   /* ===================================================================== */
   {
     slug: "quiz", layout: "quiz", icon: "quiz",
+    group: "kit",
+    short: { en: "Quiz", zh: "測驗" },
     title: { en: "Check your understanding", zh: "隨堂測驗" },
     subtitle: { en: "Seven questions on the study's main findings. Answers are scored in this session only.",
                 zh: "關於研究主要發現的七題。作答與計分只存在於本次瀏覽。" },
@@ -598,6 +620,8 @@ window.SITE_PAGES = [
   /* ===================================================================== */
   {
     slug: "references", layout: "table", icon: "format_quote",
+    group: "kit",
+    short: { en: "References", zh: "文獻" },
     title: { en: "Selected references", zh: "精選參考文獻" },
     subtitle: { en: "Key works cited by the paper. Search, sort by column, or filter by year. Links open the source.",
                 zh: "論文引用的關鍵著作。可搜尋、依欄位排序，或依年份篩選。連結開啟原始來源。" },
