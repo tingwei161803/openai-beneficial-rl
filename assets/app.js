@@ -41,23 +41,118 @@
       return '<header class="page-head"><h1>' + esc(t(p.title)) + "</h1>" + sub + "</header>";
     }
 
-    function barChart(series, accent) {
-      var W = 520, H = 240, padL = 16, padR = 16, padT = 16, padB = 44;
-      var plotW = W - padL - padR, plotH = H - padT - padB;
-      var max = Math.max.apply(null, series.map(function (d) { return d.value; }).concat([1]));
-      var n = series.length || 1, gap = 14, bw = (plotW - gap * (n - 1)) / n, baseY = padT + plotH;
-      var bars = series.map(function (d, i) {
-        var x = padL + i * (bw + gap), h = (d.value / max) * plotH, y = baseY - h;
-        var label = esc(t(d.label)), val = esc(String(d.value));
-        return '<rect class="bar-rect" x="' + r(x) + '" y="' + r(y) + '" width="' + r(bw) +
-          '" height="' + r(h) + '" rx="5"' + (accent ? ' style="fill:' + esc(accent) + '"' : "") +
-          '><title>' + label + ": " + val + "</title></rect>" +
-          '<text class="bar-value" x="' + r(x + bw / 2) + '" y="' + r(y - 6) + '" text-anchor="middle">' + val + "</text>" +
-          '<text class="bar-label" x="' + r(x + bw / 2) + '" y="' + r(baseY + 18) + '" text-anchor="middle">' + label + "</text>";
+    var EN = L.state.lang === "en";
+    var COND = { base: EN ? "Baseline" : "基線", rl: EN ? "Beneficial-trait RL" : "有益特質 RL" };
+
+    /* Horizontal bars in HTML (not SVG) so labels keep their CSS size on any
+       screen. Each item may carry `cond` ("base" | "rl") to take the
+       baseline-slate / trait-RL-teal colour story; `refs` draws dashed
+       reference lines (e.g. an aggregate baseline) across every row. */
+    function hbars(series, opts) {
+      opts = opts || {};
+      var max = opts.max || Math.max.apply(null, series.map(function (d) { return d.value; }).concat([0.0001])) * 1.18;
+      function x(v) { return r(Math.min(100, (v / max) * 100)); }
+      var refs = (opts.refs || []);
+      var refMarks = refs.map(function (rf) {
+        return '<i class="hbars__ref hbars__ref--' + esc(rf.cond) + '" style="left:' + x(rf.value) + '%"></i>';
       }).join("");
-      return '<svg viewBox="0 0 ' + W + " " + H + '" role="img" preserveAspectRatio="xMidYMid meet" aria-label="bar chart">' +
-        '<line class="axis-line" x1="' + padL + '" y1="' + r(baseY) + '" x2="' + r(W - padR) + '" y2="' + r(baseY) + '" />' +
-        bars + "</svg>";
+      var legend = refs.length ? '<div class="hbars__row hbars__row--legend" aria-hidden="true"><span class="hbars__label"></span>' +
+        '<span class="hbars__track">' + refs.map(function (rf) {
+          return '<span class="hbars__reflabel hbars__reflabel--' + esc(rf.cond) + '" style="left:' + x(rf.value) + '%">' +
+            esc(t(rf.label)) + " " + esc(String(rf.value)) + "</span>";
+        }).join("") + "</span></div>" : "";
+      var rows = series.map(function (d) {
+        var cond = d.cond || opts.cond || "rl";
+        return '<div class="hbars__row" role="listitem"><span class="hbars__label">' + esc(t(d.label)) + "</span>" +
+          '<span class="hbars__track">' + refMarks +
+            '<span class="hbars__bar hbars__bar--' + esc(cond) + '" style="width:' + x(d.value) + '%"></span>' +
+            '<span class="hbars__val" style="left:' + x(d.value) + '%">' + esc(String(d.value)) + "</span>" +
+          "</span></div>";
+      }).join("");
+      return '<div class="hbars' + (refs.length ? " hbars--refs" : "") + '" role="list">' + legend + rows + "</div>";
+    }
+
+    /* Slope chart: every paired evaluation as a line from the baseline score
+       (left, slate) to the beneficial-trait RL score (right, teal). Geometry
+       is in percentages (HTML labels + a stretched SVG with non-scaling
+       strokes), so the same markup works at any width and in the static copy. */
+    function dodge(items, gap) {
+      var a = items.slice().sort(function (p, q) { return p.y - q.y; });
+      for (var i = 1; i < a.length; i++) if (a[i].y - a[i - 1].y < gap) a[i].y = a[i - 1].y + gap;
+      var over = a.length ? a[a.length - 1].y - 100 : 0;
+      if (over > 0) {
+        a[a.length - 1].y = 100;
+        for (var j = a.length - 2; j >= 0; j--) if (a[j + 1].y - a[j].y < gap) a[j].y = a[j + 1].y - gap;
+      }
+      return items;
+    }
+    function slopeChart(rows, opts) {
+      opts = opts || {};
+      var vals = [];
+      rows.forEach(function (d) { vals.push(d.base, d.rl); });
+      var lo = Math.floor(Math.min.apply(null, vals) * 10) / 10, hi = Math.ceil(Math.max.apply(null, vals) * 10) / 10;
+      var span = (hi - lo) || 1;
+      function y(v) { return r((hi - v) / span * 100); }
+      var L = rows.map(function (d, i) { return { i: i, y: y(d.base), d: d }; });
+      var R = rows.map(function (d, i) { return { i: i, y: y(d.rl), d: d }; });
+      dodge(L, 4.2); dodge(R, 6);
+      var lines = rows.map(function (d, i) {
+        return '<line class="slope__line' + (d.agg ? " slope__line--agg" : "") + (d.cap ? " slope__line--cap" : "") +
+          '" x1="0" y1="' + y(d.base) + '" x2="100" y2="' + y(d.rl) + '" vector-effect="non-scaling-stroke" data-i="' + i + '" />';
+      }).join("");
+      var dots = rows.map(function (d, i) {
+        var k = d.agg ? " slope__dot--agg" : "";
+        return '<span class="slope__dot slope__dot--base' + k + '" style="left:0%;top:' + y(d.base) + '%"></span>' +
+               '<span class="slope__dot slope__dot--rl' + k + '" style="left:100%;top:' + y(d.rl) + '%"></span>';
+      }).join("");
+      var agg = rows.filter(function (d) { return d.agg; })[0];
+      var note = agg ? '<span class="slope__note" style="top:' + r((y(agg.base) + y(agg.rl)) / 2) + '%">+' +
+        (Math.round((agg.rl - agg.base) * 100) / 100).toFixed(2) + "</span>" : "";
+      var lvals = L.map(function (o) {
+        return '<span class="slope__v' + (o.d.agg ? " slope__v--agg" : "") + '" style="top:' + r(o.y) + '%">' + esc(o.d.baseTxt || String(o.d.base)) + "</span>";
+      }).join("");
+      var labels = R.map(function (o) {
+        var d = o.d;
+        return '<span class="slope__lab' + (d.agg ? " slope__lab--agg" : "") + (d.cap ? " slope__lab--cap" : "") + '" style="top:' + r(o.y) + '%">' +
+          '<b class="slope__rv">' + esc(d.rlTxt || String(d.rl)) + "</b> " +
+          '<span class="slope__name">' + esc(d.name) + "</span>" +
+          (d.delta ? ' <span class="slope__delta">' + esc(d.delta) + "</span>" : "") + "</span>";
+      }).join("");
+      var sr = '<ul class="sr-only">' + rows.map(function (d) {
+        return "<li>" + esc(d.name) + ": " + esc(COND.base) + " " + esc(String(d.base)) + " → " + esc(COND.rl) + " " + esc(String(d.rl)) + "</li>";
+      }).join("") + "</ul>";
+      return '<div class="slope' + (opts.hero ? " slope--hero" : "") + '">' +
+        '<div class="slope__head" aria-hidden="true"><span></span><span class="slope__hpair">' +
+          '<span class="slope__h slope__h--base">' + esc(COND.base) + "</span>" +
+          '<span class="slope__h slope__h--rl">' + esc(COND.rl) + "</span></span><span></span></div>" +
+        '<div class="slope__body" aria-hidden="true">' +
+          '<div class="slope__lvals">' + lvals + "</div>" +
+          '<div class="slope__plot"><svg viewBox="0 0 100 100" preserveAspectRatio="none" focusable="false">' +
+            '<defs><linearGradient id="slopeGrad" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="100" y2="0">' +
+              '<stop offset="0" class="slope__g0" /><stop offset="1" class="slope__g1" /></linearGradient></defs>' +
+            '<line class="slope__axis" x1="0" y1="0" x2="0" y2="100" vector-effect="non-scaling-stroke" />' +
+            '<line class="slope__axis" x1="100" y1="0" x2="100" y2="100" vector-effect="non-scaling-stroke" />' +
+            lines + "</svg>" + dots + note + "</div>" +
+          '<div class="slope__labels">' + labels + "</div>" +
+        "</div>" + sr + "</div>";
+    }
+    /* the paired rows the paper reports, in slope-chart form */
+    function pairedRows(res, withAgg, aggName) {
+      var rows = ((res.table && res.table.rows) || []).map(function (row) {
+        var name = t(row.eval);
+        return { name: name, base: parseFloat(row.baseline), rl: parseFloat(row.rl), delta: row.delta,
+                 baseTxt: String(row.baseline), rlTxt: String(row.rl),
+                 cap: /capabilit|能力/i.test(name) };
+      });
+      if (withAgg && res.bars && res.bars.baselineAggregate != null) {
+        rows.unshift({ name: aggName, base: res.bars.baselineAggregate, rl: res.bars.rlAggregate,
+                       delta: "", agg: true });
+      }
+      return rows;
+    }
+    function firstSentence(s) {
+      var m = String(s || "").match(/^.*?(?:[。！？]|[.!?](?=\s|$))/);
+      return m ? m[0] : s;
     }
 
     function lineChart(points) {
@@ -90,23 +185,61 @@
        ===================================================================== */
     var RENDERERS = {
 
-      /* ---- hub: hero stats + a card linking to every other page ---- */
+      /* ---- hub: research-explainer front page ----
+         title + abstract, then the key figure (baseline → trait-RL slope chart)
+         with its margin notes, a numbered contents list of the paper's
+         sections, and the study tools as a separate band. */
       hub: function (p) {
-        var stats = (p.stats || []).map(function (s) {
-          return '<div class="hero__stat" data-item>' +
-            '<b class="hero__stat-value" data-count="' + esc(String(s.value)) + '">0</b>' +
-            '<span class="hero__stat-label">' + esc(t(s.label)) + "</span></div>";
+        var res = L.pages.filter(function (q) { return q.slug === "results"; })[0] || {};
+        var fig = p.figure || {};
+        var gain = (res.stats || [])[1];
+        var facts = (p.stats || []).map(function (s) {
+          return '<div class="facts__row"><dt>' + esc(String(s.value)) + "</dt><dd>" + esc(t(s.label)) + "</dd></div>";
         }).join("");
-        var cards = L.pages.filter(function (q) { return q.slug !== "home"; }).map(function (q) {
-          return '<a class="card card--nav" data-item href="' + esc(L.pageHref(q)) + '" ' +
-              'aria-label="' + esc(t(q.title)) + '">' +
-            '<span class="material-symbols-rounded card__icon" aria-hidden="true">' + esc(q.icon || "label") + "</span>" +
-            '<h3 class="card__title">' + esc(t(q.title)) + "</h3>" +
-            '<p class="card__summary">' + esc(t(q.subtitle)) + "</p></a>";
+        var paper = L.pages.filter(function (q) { return q.group === "paper"; });
+        var kit = L.pages.filter(function (q) { return q.group === "kit"; });
+        var toc = paper.map(function (q, i) {
+          return '<li><a class="toc-entry" href="' + esc(L.pageHref(q)) + '">' +
+            '<span class="toc-entry__num">' + (i + 1) + "</span>" +
+            '<span class="toc-entry__title">' + esc(t(q.title)) + "</span>" +
+            '<span class="toc-entry__desc">' + esc(firstSentence(t(q.subtitle))) + "</span></a></li>";
         }).join("");
-        return head(p) +
-          (stats ? '<div class="hero__stats">' + stats + "</div>" : "") +
-          '<div class="grid">' + cards + "</div>";
+        var cards = kit.map(function (q) {
+          return '<a class="kit-card kit-card--' + esc(q.slug) + '" href="' + esc(L.pageHref(q)) + '">' +
+            '<span class="material-symbols-rounded kit-card__icon" aria-hidden="true">' + esc(q.icon || "label") + "</span>" +
+            '<span class="kit-card__title">' + esc(t(q.title)) + "</span>" +
+            '<span class="kit-card__desc">' + esc(firstSentence(t(q.subtitle))) + "</span></a>";
+        }).join("");
+        return '<header class="page-head hero">' +
+            "<h1>" + esc(t(p.title)) + "</h1>" +
+            '<p class="hero__abstract">' + esc(t(p.subtitle)) + "</p>" +
+            (t(p.kicker) ? '<p class="hero__byline">' + esc(t(p.kicker)) + "</p>" : "") +
+          "</header>" +
+          '<figure class="fig fig--hero">' +
+            '<div class="fig__grid">' +
+              '<div class="fig__main">' +
+                (t(fig.title) ? '<p class="fig__title">' + esc(t(fig.title)) + "</p>" : "") +
+                slopeChart(pairedRows(res, true, t(fig.aggregate)), { hero: true }) +
+              "</div>" +
+              '<aside class="fig__margin">' +
+                (gain ? '<p class="fig__big"><span class="fig__big-num">' + esc(String(gain.value)) + "</span>" +
+                  '<span class="fig__big-unit">' + esc(t(gain.unit)) + "</span></p>" +
+                  '<p class="fig__big-label">' + esc(t(fig.headline)) + "</p>" : "") +
+                '<dl class="facts">' + facts + "</dl>" +
+              "</aside>" +
+            "</div>" +
+            '<figcaption class="fig__caption"><span class="fig__no">' + (EN ? "Figure 1." : "圖 1") + "</span> " + esc(t(fig.caption)) + "</figcaption>" +
+          "</figure>" +
+          '<section class="home-sec" aria-labelledby="tocH">' +
+            '<h2 class="home-sec__h" id="tocH">' + (EN ? "Contents" : "目錄") + "</h2>" +
+            '<ol class="toc-list">' + toc + "</ol>" +
+          "</section>" +
+          '<section class="home-sec kit" aria-labelledby="kitH">' +
+            '<div class="kit__intro"><h2 class="home-sec__h" id="kitH">' + (EN ? "Study kit" : "學習工具") + "</h2>" +
+            "<p>" + (EN ? "Finished reading? Check what stuck with the flashcards and the quiz, or look up a term."
+                         : "讀完之後，用字卡和測驗檢查自己記住了多少，或回頭查術語。") + "</p></div>" +
+            '<div class="kit__cards">' + cards + "</div>" +
+          "</section>";
       },
 
       /* ---- gallery: search + chips + card grid + dialog ---- */
@@ -129,10 +262,10 @@
 
       /* ---- article: sticky TOC + prose + reading progress ---- */
       article: function (p) {
-        var toc = (p.sections || []).map(function (s) {
-          return '<a class="toc-link" href="#' + esc(s.id) + '" data-toc="' + esc(s.id) + '">' + esc(t(s.heading)) + "</a>";
+        var toc = (p.sections || []).map(function (s, si) {
+          return '<a class="toc-link" href="#' + esc(s.id) + '" data-toc="' + esc(s.id) + '"><span class="toc-link__num">' + (si + 1) + "</span>" + esc(t(s.heading)) + "</a>";
         }).join("");
-        var body = (p.sections || []).map(function (s) {
+        var body = (p.sections || []).map(function (s, si) {
           var blocks = (s.blocks || []).map(function (b) {
             if (b.type === "h3") return "<h3>" + esc(t(b.text)) + "</h3>";
             if (b.type === "quote") return "<blockquote>" + esc(t(b.text)) + "</blockquote>";
@@ -144,48 +277,59 @@
             return "<p>" + esc(t(b.text)) + "</p>";
           }).join("");
           return '<section class="article-section" id="' + esc(s.id) + '" data-item ' +
-            'aria-labelledby="' + esc(s.id) + '-h"><h2 id="' + esc(s.id) + '-h">' + esc(t(s.heading)) + "</h2>" + blocks + "</section>";
+            'aria-labelledby="' + esc(s.id) + '-h"><h2 id="' + esc(s.id) + '-h"><span class="sec-num">' + (si + 1) + "</span>" + esc(t(s.heading)) + "</h2>" + blocks + "</section>";
         }).join("");
-        return '<div class="reading-progress" id="readingProgress" aria-hidden="true"></div>' +
-          head(p) +
+        return head(p) +
           '<div class="article-layout">' +
             '<nav class="toc" aria-label="Contents"><div class="toc__inner">' + toc + "</div></nav>" +
             '<div class="article-body prose">' + body + "</div>" +
           "</div>";
       },
 
-      /* ---- dashboard: stat cards + bar + line + table ---- */
+      /* ---- dashboard (results): key numbers, the held-out trait chart with
+         the baseline drawn in, the paired baseline → RL slope chart, table ---- */
       dashboard: function (p) {
         var stats = (p.stats || []).map(function (s) {
           var d = s.delta;
-          var deltaHtml = (d === 0 || d) ?
-            '<span class="stat-delta stat-delta--' + (d >= 0 ? "up" : "down") + '">' +
-              (d >= 0 ? "▲ " : "▼ ") + esc(String(Math.abs(d))) + "%</span>" : "";
-          return '<div class="stat-card" data-item>' +
-            '<span class="stat-label">' + esc(t(s.label)) + "</span>" +
-            '<b class="stat-value">' + esc(String(s.value)) +
-              (t(s.unit) ? ' <span class="stat-unit">' + esc(t(s.unit)) + "</span>" : "") + "</b>" +
-            deltaHtml + "</div>";
+          return '<div class="keynum">' +
+            '<dt class="keynum__label">' + esc(t(s.label)) + "</dt>" +
+            '<dd class="keynum__value">' + esc(String(s.value)) +
+              (t(s.unit) ? ' <span class="keynum__unit">' + esc(t(s.unit)) + "</span>" : "") +
+              ((d === 0 || d) ? ' <span class="keynum__pct">' + esc(String(d)) + "%</span>" : "") + "</dd></div>";
         }).join("");
-        var bars = p.bars ? '<figure class="panel" data-item><figcaption>' + esc(t(p.bars.title)) + "</figcaption>" +
-          '<div class="chart-wrap">' + barChart(p.bars.series || []) + "</div></figure>" : "";
-        var line = p.line ? '<figure class="panel" data-item><figcaption>' + esc(t(p.line.title)) + "</figcaption>" +
-          '<div class="chart-wrap">' + lineChart(p.line.points || []) + "</div></figure>" : "";
+        var bars = "";
+        if (p.bars) {
+          var refs = [];
+          if (p.bars.baselineAggregate != null) refs.push({ cond: "base", value: p.bars.baselineAggregate, label: COND.base });
+          if (p.bars.rlAggregate != null) refs.push({ cond: "rl", value: p.bars.rlAggregate, label: EN ? "Trait RL" : "特質 RL" });
+          bars = '<figure class="fig" data-item>' +
+            '<p class="fig__title">' + esc(t(p.bars.title)) + "</p>" +
+            hbars(p.bars.series || [], { max: 1, refs: refs, cond: "rl" }) +
+            '<figcaption class="fig__caption"><span class="fig__no">' + (EN ? "Figure 1." : "圖 1") + "</span> " + esc(t(p.bars.note)) + "</figcaption>" +
+          "</figure>";
+        }
+        var slope = (p.table && p.table.rows) ? '<figure class="fig" data-item>' +
+            '<p class="fig__title">' + (EN ? "Baseline → beneficial-trait RL, evaluation by evaluation" : "逐項評測：基線 → 有益特質 RL") + "</p>" +
+            slopeChart(pairedRows(p, false)) +
+            '<figcaption class="fig__caption"><span class="fig__no">' + (EN ? "Figure 2." : "圖 2") + "</span> " +
+              (EN ? "Each line joins the two models' scores on one evaluation from the table below; the vermilion figure is the gap. Higher is better."
+                  : "每條線連起兩個模型在下表同一項評測上的分數；朱紅數字是差距。越高越好。") + "</figcaption>" +
+          "</figure>" : "";
         var table = "";
         if (p.table) {
-          var thead = (p.table.columns || []).map(function (c) { return "<th>" + esc(t(c.label)) + "</th>"; }).join("");
+          var thead = (p.table.columns || []).map(function (c) {
+            return '<th class="col-' + esc(c.key) + '">' + esc(t(c.label)) + "</th>"; }).join("");
           var tbody = (p.table.rows || []).map(function (row) {
-            return "<tr data-item>" + (p.table.columns || []).map(function (c) {
+            return "<tr>" + (p.table.columns || []).map(function (c) {
               var v = row[c.key];
-              return "<td>" + esc(typeof v === "object" ? t(v) : String(v == null ? "" : v)) + "</td>";
+              return '<td class="col-' + esc(c.key) + '">' + esc(typeof v === "object" ? t(v) : String(v == null ? "" : v)) + "</td>";
             }).join("") + "</tr>";
           }).join("");
-          table = '<div class="panel panel--wide" data-item><div class="table-wrap"><table class="data-table">' +
-            "<thead><tr>" + thead + "</tr></thead><tbody>" + tbody + "</tbody></table></div></div>";
+          table = '<div class="table-wrap table-wrap--results" data-item><table class="data-table data-table--results">' +
+            "<thead><tr>" + thead + "</tr></thead><tbody>" + tbody + "</tbody></table></div>";
         }
         return head(p) +
-          '<div class="stat-grid">' + stats + "</div>" +
-          '<div class="panel-grid">' + bars + line + "</div>" + table;
+          '<dl class="keynums">' + stats + "</dl>" + bars + slope + table;
       },
 
       /* ---- timeline: dated event cards down a rail ---- */
@@ -392,7 +536,7 @@
        WIRING (interactions) — keyed by layout, run after innerHTML is set
        ===================================================================== */
     var WIRE = {
-      hub: function () { animateCounters(); },
+      hub: function () { /* static figure; motion handled in setupMotion */ },
 
       gallery: function (p) {
         var grid = document.getElementById("grid");
@@ -411,7 +555,7 @@
           var rows = (p.items || []).filter(matches);
           grid.innerHTML = rows.map(function (item) {
             var tags = (item.tags || []).map(function (g) { return '<span class="tag">' + esc(g) + "</span>"; }).join("");
-            return '<article class="card" tabindex="0" role="button" data-item data-slug="' + esc(item.slug) + '" ' +
+            return '<article class="card card--' + esc(item.category || "item") + '" tabindex="0" role="button" data-item data-slug="' + esc(item.slug) + '" ' +
               'aria-label="' + esc(t(item.title)) + '">' +
               '<h3 class="card__title">' + esc(t(item.title)) + "</h3>" +
               '<p class="card__summary">' + esc(t(item.summary)) + "</p>" +
@@ -474,17 +618,8 @@
       },
 
       article: function () {
-        var prog = document.getElementById("readingProgress");
         var links = [].slice.call(pageEl.querySelectorAll(".toc-link"));
         var secs = [].slice.call(pageEl.querySelectorAll(".article-section"));
-        function onScroll() {
-          var h = document.documentElement;
-          var max = h.scrollHeight - h.clientHeight;
-          if (prog) prog.style.width = (max > 0 ? (h.scrollTop / max) * 100 : 0) + "%";
-        }
-        window.addEventListener("scroll", onScroll, { passive: true });
-        onScroll();
-        teardowns.push(function () { window.removeEventListener("scroll", onScroll); });
         if ("IntersectionObserver" in window) {
           var io = new IntersectionObserver(function (entries) {
             entries.forEach(function (en) {
@@ -630,7 +765,7 @@
           var s = (p.steps || [])[i]; if (!s) return;
           var v = s.visual || {};
           if (v.type === "bars") {
-            visual.innerHTML = '<div class="chart-wrap">' + barChart(v.bars || [], v.color) + "</div>";
+            visual.innerHTML = '<div class="chart-wrap">' + hbars(v.bars || []) + "</div>";
           } else {
             visual.innerHTML = '<div class="scrolly-stat" style="color:' + esc(v.color || "var(--primary)") + '">' +
               esc(t(v.value)) + "</div>";
@@ -741,96 +876,53 @@
       }
     };
 
-    /* ---- hero count-up (shared by hub) ---- */
-    function animateCounters() {
-      var els = [].slice.call(pageEl.querySelectorAll(".hero__stat-value[data-count]"));
-      if (!els.length) return;
-      function run(el) {
-        var target = parseFloat(el.dataset.count) || 0, dur = 1000, start = null;
-        function step(ts) {
-          if (start === null) start = ts;
-          var pr = Math.min(1, (ts - start) / dur), eased = 1 - Math.pow(1 - pr, 3);
-          el.textContent = String(Math.round(target * eased));
-          if (pr < 1) requestAnimationFrame(step); else el.textContent = String(target);
-        }
-        requestAnimationFrame(step);
-      }
-      if (!("IntersectionObserver" in window)) { els.forEach(run); return; }
-      var io = new IntersectionObserver(function (entries) {
-        entries.forEach(function (en) { if (en.isIntersecting) { run(en.target); io.unobserve(en.target); } });
-      }, { threshold: 0.4 });
-      els.forEach(function (el) { io.observe(el); });
-      teardowns.push(function () { io.disconnect(); });
-    }
-
     /* =====================================================================
        GSAP MOTION LAYER (progressive enhancement)
 
-       Runs after each render. It is fully optional: if GSAP failed to load or
-       the visitor prefers reduced motion, nothing here runs and the content is
-       already visible (CSS owns a quiet fallback fade). Above-the-fold items
-       always animate in immediately (gsap.from), so content is NEVER left
-       stuck hidden; only below-the-fold items wait for a scroll reveal. Every
-       ScrollTrigger / tween is pushed into `teardowns` so anything that
-       rebuilds #page cleans up before the next render.
+       Runs after each render and is fully optional: if GSAP failed to load or
+       the visitor prefers reduced motion, nothing here runs. There are no
+       scroll-triggered reveals any more — content below the fold is never set
+       to opacity 0, so print, no-JS, full-page captures and readers who jump
+       straight to an anchor all see everything. Only what is already on
+       screen at load gets one short entrance (the page head, and the key
+       figure drawing itself).
        ===================================================================== */
     var REDUCED = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
-    var stRegistered = false;
 
     function setupMotion() {
-      var gsap = window.gsap, ST = window.ScrollTrigger;
-      if (!gsap || REDUCED) return;                       // CSS fallback handles visibility
-      if (ST && !stRegistered) { gsap.registerPlugin(ST); stRegistered = true; }
-      document.documentElement.classList.add("has-gsap"); // let GSAP own the reveal (CSS fade off)
-
-      var made = [];                                       // tweens + ScrollTriggers to kill later
+      var gsap = window.gsap;
+      if (!gsap || REDUCED) return;                       // content is already fully visible
+      document.documentElement.classList.add("has-gsap");
+      var made = [];
       function keep(x) { if (x) made.push(x); return x; }
+      var vh = window.innerHeight || 800;
+      function inView(el) { var b = el.getBoundingClientRect(); return b.top < vh && b.bottom > 0; }
 
-      // 1) page-head entrance — always above the fold
+      // 1) page head settles in
       var heads = pageEl.querySelectorAll(".page-head > *");
-      if (heads.length) keep(gsap.from(heads, { y: 18, opacity: 0, duration: .7, ease: "power3.out", stagger: .08 }));
+      if (heads.length) keep(gsap.from(heads, { y: 14, opacity: 0, duration: .6, ease: "power3.out", stagger: .07 }));
 
-      // 2) primary content reveal. Split by viewport so nothing stays hidden:
-      //    in-view items animate now; below-fold items reveal on scroll.
-      //    Skip <tr> — transforms render inconsistently on table rows.
-      var items = [].slice.call(pageEl.querySelectorAll("[data-item]:not(tr)"));
-      if (items.length) {
-        var vh = window.innerHeight || 800, above = [], below = [];
-        items.forEach(function (el) {
-          (el.getBoundingClientRect().top < vh * 0.9 ? above : below).push(el);
-        });
-        if (above.length) keep(gsap.from(above, { y: 20, opacity: 0, duration: .6, ease: "power3.out", stagger: .05 }));
-        if (below.length) {
-          if (ST && ST.batch) {
-            gsap.set(below, { y: 24, opacity: 0 });
-            ST.batch(below, {
-              start: "top 90%",
-              onEnter: function (els) {
-                gsap.to(els, { y: 0, opacity: 1, duration: .6, ease: "power3.out", stagger: .06, overwrite: true });
-              }
-            }).forEach(keep);
-          } else {
-            gsap.set(below, { opacity: 1, y: 0 });          // no ScrollTrigger: just show them
-          }
-        }
-      }
-
-      // 3) chart bars grow from their own base when the panel scrolls in
-      var bars = pageEl.querySelectorAll(".bar-rect");
-      if (ST && bars.length) {
-        gsap.set(bars, { scaleY: 0 });
-        var host = bars[0].closest(".panel, .scrolly-visual") || pageEl;
-        keep(ST.create({
-          trigger: host, start: "top 82%", once: true,
-          onEnter: function () { gsap.to(bars, { scaleY: 1, duration: .9, ease: "power2.out", stagger: .05 }); }
-        }));
-      }
-
-      if (ST) ST.refresh();
+      // 2) the key figure draws itself: lines sweep left → right, then the
+      //    trait-RL end points and the annotations arrive. Only for a figure
+      //    already on screen, so nothing below the fold is ever hidden.
+      [].forEach.call(pageEl.querySelectorAll(".slope"), function (sl) {
+        if (!inView(sl)) return;
+        var svg = sl.querySelector(".slope__plot svg");
+        var tl = gsap.timeline({ delay: .25 });
+        if (svg) tl.fromTo(svg, { clipPath: "inset(0% 100% 0% 0%)" }, { clipPath: "inset(0% 0% 0% 0%)", duration: 1.1, ease: "power2.inOut", clearProps: "clipPath" });
+        tl.from(sl.querySelectorAll(".slope__dot--rl, .slope__labels > *"), { opacity: 0, x: -6, duration: .4, stagger: .03 }, "-=.35");
+        tl.from(sl.querySelectorAll(".slope__note"), { opacity: 0, scale: .8, duration: .4 }, "-=.1");
+        keep(tl);
+      });
+      [].forEach.call(pageEl.querySelectorAll(".hbars"), function (hb) {
+        if (!inView(hb)) return;
+        keep(gsap.from(hb.querySelectorAll(".hbars__bar"), { scaleX: 0, transformOrigin: "left center", duration: .8, ease: "power2.out", stagger: .05 }));
+      });
 
       teardowns.push(function () {
         made.forEach(function (x) { try { x.kill && x.kill(); } catch (e) {} });
         try { gsap.killTweensOf(pageEl.querySelectorAll("*")); } catch (e) {}
+        try { gsap.set(pageEl.querySelectorAll("*"), { clearProps: "all" }); } catch (e) {}
       });
     }
 

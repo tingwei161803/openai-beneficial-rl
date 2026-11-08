@@ -38,7 +38,15 @@ window.SITE_PAGES = [
       { value: 15, label: { en: "Beneficial traits", zh: "有益特質" } },
       { value: 12, label: { en: "Realistic domains", zh: "真實情境領域" } },
       { value: 17, label: { en: "Non-health evals lifted by health-only training", zh: "僅健康訓練即改善的非健康評測" } }
-    ]
+    ],
+    kicker: { en: "An unofficial reader's guide to the paper", zh: "非官方論文導讀" },
+    figure: {
+      title: { en: "Same evaluations, two models", zh: "同一批評測，兩個模型" },
+      caption: { en: "Scores of the compute-matched baseline (left, slate) and the beneficial-trait RL model (right, teal) on the paired evaluations listed on the Results page. The thick line is the aggregate over the seven held-out traits. Higher is better throughout.",
+                 zh: "相同算力基線（左，灰）與有益特質 RL 模型（右，青）在「結果」頁所列配對評測上的分數。粗線是 7 個 held-out 特質的整體分數。全部以「越高越好」呈現。" },
+      aggregate: { en: "Held-out traits (aggregate)", zh: "held-out 特質（整體）" },
+      headline: { en: "mean gain across 53 out-of-distribution evals", zh: "53 個分布外評測的平均進步" }
+    }
   },
 
   /* ===================================================================== */
@@ -342,6 +350,10 @@ window.SITE_PAGES = [
     bars: {
       title: { en: "Held-out trait scores after beneficial-trait RL (baseline aggregate 0.41 → 0.61)",
                zh: "有益特質 RL 後的 held-out 特質分數（基線整體 0.41 → 0.61）" },
+      baselineAggregate: 0.41,
+      rlAggregate: 0.61,
+      note: { en: "Per-trait baseline scores are not listed in this summary, so the baseline is drawn as its aggregate (dashed slate line, 0.41). The dashed teal line is the beneficial-trait RL aggregate (0.61).",
+              zh: "本導讀未列出各特質的基線分數，因此基線以整體分數呈現（灰色虛線，0.41）；青色虛線為有益特質 RL 的整體分數（0.61）。" },
       series: [
         { label: { en: "Truthful", zh: "真實" }, value: 0.542 },
         { label: { en: "Metacog.", zh: "後設認知" }, value: 0.467 },
@@ -389,8 +401,8 @@ window.SITE_PAGES = [
       { text: { en: "Under a harmful medical persona prompt, the baseline's average alignment score collapses from 0.395 to 0.144 (a 0.251 drop). The beneficial-trait model starts higher and falls far less — 0.455 to ~0.336 (a 0.119 drop).",
                 zh: "在「有害醫療人格」提示下，基線的平均對齊分數從 0.395 崩到 0.144（下降 0.251）。有益特質模型起點更高、跌得更少——從 0.455 到約 0.336（下降 0.119）。" },
         visual: { type: "bars", color: "#9F2F2D", bars: [
-          { label: { en: "Baseline drop", zh: "基線跌幅" }, value: 0.251 },
-          { label: { en: "Trait-RL drop", zh: "特質 RL 跌幅" }, value: 0.119 }
+          { label: { en: "Baseline drop", zh: "基線跌幅" }, value: 0.251, cond: "base" },
+          { label: { en: "Trait-RL drop", zh: "特質 RL 跌幅" }, value: 0.119, cond: "rl" }
         ] } },
       { text: { en: "Crucially, both models respond similarly to a helpful persona (the difference in that helpful steering is only +0.005). So beneficial-trait RL selectively reduces steerability toward harm while preserving steerability toward good.",
                 zh: "關鍵是：兩個模型對「有幫助的人格」反應相近（在這個正向誘導上的差距僅 +0.005）。所以有益特質 RL 是「選擇性」地降低了被推向有害的可塑性，卻保留了被推向有益的可塑性。" },
@@ -398,8 +410,8 @@ window.SITE_PAGES = [
       { text: { en: "After harmful finetuning to produce bad medical advice, both degrade on health tasks — but the beneficial-trait model regresses far less on broader alignment. Misalignment falls 0.08 vs 0.36; alignment questions 0.07 vs 0.46; model-spec compliance 0.16 vs 0.27.",
                 zh: "經過「產生壞醫療建議」的有害微調後，兩者在健康任務上都退步——但有益特質模型在更廣泛的對齊上退步少得多。失準下降 0.08 對 0.36；對齊問答 0.07 對 0.46；模型規範遵循 0.16 對 0.27。" },
         visual: { type: "bars", color: "#9F2F2D", bars: [
-          { label: { en: "Baseline", zh: "基線" }, value: 0.36 },
-          { label: { en: "Trait RL", zh: "特質 RL" }, value: 0.08 }
+          { label: { en: "Baseline", zh: "基線" }, value: 0.36, cond: "base" },
+          { label: { en: "Trait RL", zh: "特質 RL" }, value: 0.08, cond: "rl" }
         ] } },
       { text: { en: "The takeaway: beneficial-trait RL may partially mitigate emergent misalignment from narrow harmful finetuning. This evidence is preliminary — it uses a pre-RL baseline and should be stress-tested across more models, objectives and evaluations.",
                 zh: "結論：有益特質 RL 或許能部分緩解由「狹窄有害微調」造成的突現性失準。這個證據仍是初步的——它用的是「RL 前」的基線，需要在更多模型、目標與評測上做壓力測試。" },
